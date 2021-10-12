@@ -1,0 +1,60 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rstudio-shiny
+  labels:
+    name: rstudio-shiny
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rstudio-shiny
+  template:
+    metadata:
+      labels:
+        app: rstudio-shiny
+    spec:
+      containers:
+      - name : rstudio-shiny
+        image: ccros/cengenapp:1.0.0
+        imagePullPolicy: "Always"
+        ports:
+        - containerPort: 3838
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shiny-service
+spec:
+  selector:
+    app: rstudio-shiny
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3838
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rstudio
+  annotations:
+    kubernetes.io/ingress.class: "nginx-external"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  rules:
+  - host: cengen.XXX
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: shiny-service
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - cengen.XXX
+    secretName: cengen-tls
